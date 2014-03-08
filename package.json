@@ -1,16 +1,16 @@
 {
   "name": "telehash-cs1a",
-  "version": "0.0.1",
-  "description": "Cipher-Set 1a for telehash",
-  "main": "index.js",
+  "version": "0.0.2",
+  "description": "CipherSet 1a for telehash",
+  "main": "node.js",
   "dependencies": {
     "ecc-jsbn": "0.0.x"
   },
   "optionalDependencies": {
     "ecc": "git+https://github.com/quartzjer/ecc.git"
   },
-  "scripts":{
-    "test": "browserify -i \"node_modules/ecc/build/Release/native.node\" test.js -o bundle.js"
+  "browserify":{
+    "main":"./browser.js"
   },
   "repository": {
     "type": "git",

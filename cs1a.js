@@ -1,40 +1,20 @@
 var crypto = require("crypto");
 
-try {
-  var ecc = require("ecc");
-}catch(E){
-  var ecc = require("ecc-jsbn");  
-}
-
-try {
-  var aes = crypto.createCipheriv("AES-128-CTR", new Buffer(16), new Buffer(16));
-  if(!aes) throw "boo";
-  var aes128ctr = function(enc, key, iv, body)
-  {
-    var aes = enc ? crypto.createCipheriv("AES-128-CTR", key, iv) : crypto.createDecipheriv("AES-128-CTR", key, iv);
-    return Buffer.concat([aes.update(body), aes.final()]);    
-  }
-}catch(E){
-  require("./forge.min.js");
-  var aes128ctr = function(enc, key, iv, body)
-  {
-  	var cipher = enc ? forge.aes.createEncryptionCipher(key.toString("binary"), "CTR") : forge.aes.createDecryptionCipher(key.toString("binary"), "CTR");
-  	cipher.start(iv.toString("binary"));
-  	cipher.update(forge.util.createBuffer(body.toString('binary')));
-  	cipher.finish();
-    return new Buffer(cipher.output.getBytes(), "binary");
-  }
-}
-
 var self;
 exports.install = function(telehash)
 {
   self = telehash;
 }
 
+exports.crypt = function(ecc,aes)
+{
+  crypto.ecc = ecc;
+  crypto.aes = aes;
+}
+
 exports.genkey = function(ret,cbDone,cbStep)
 {
-  var k = new ecc.ECKey(ecc.ECCurves.secp160r1);
+  var k = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
   ret["1a"] = k.PublicKey.slice(1).toString("base64");
   ret["1a_secret"] = k.PrivateKey.toString("base64");
   ret.parts["1a"] = crypto.createHash("sha1").update(k.PublicKey.slice(1)).digest("hex");
@@ -46,14 +26,14 @@ exports.loadkey = function(id, pub, priv)
   if(typeof pub == "string") pub = new Buffer(pub,"base64");
   if(!Buffer.isBuffer(pub) || pub.length != 40) return "invalid public key";
   id.key = pub;
-  id.public = new ecc.ECKey(ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),id.key]), true);
+  id.public = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),id.key]), true);
   if(!id.public) return "public key load failed";
 
   if(priv)
   {
     if(typeof priv == "string") priv = new Buffer(priv,"base64");
     if(!Buffer.isBuffer(priv) || priv.length != 20) return "invalid private key";
-    id.private = new ecc.ECKey(ecc.ECCurves.secp160r1, priv);
+    id.private = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, priv);
     if(!id.private) return "private key load failed";
   }
   return false;
@@ -61,7 +41,7 @@ exports.loadkey = function(id, pub, priv)
 
 exports.openize = function(id, to, inner)
 {
-	if(!to.ecc) to.ecc = new ecc.ECKey(ecc.ECCurves.secp160r1);
+	if(!to.ecc) to.ecc = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
   var eccpub = to.ecc.PublicKey.slice(1);
 
   // get the shared secret to create the iv+key for the open aes
@@ -71,7 +51,7 @@ exports.openize = function(id, to, inner)
 
   // encrypt the inner
   var body = self.pencode(inner,id.cs["1a"].key);
-  var cbody = aes128ctr(true, key, iv, body);
+  var cbody = crypto.aes(true, key, iv, body);
 
   // prepend the line public key and hmac it  
   var secret = id.cs["1a"].private.deriveSharedSecret(to.public);
@@ -93,7 +73,7 @@ exports.deopenize = function(id, open)
   var cbody = open.body.slice(60);
 
   try{
-    ret.linepub = new ecc.ECKey(ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),pub]), true);      
+    ret.linepub = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),pub]), true);      
   }catch(E){
     console.log("ecc err",E);
   }
@@ -104,12 +84,12 @@ exports.deopenize = function(id, open)
   var iv = new Buffer("00000000000000000000000000000001","hex");
 
   // aes-128 decipher the inner
-  var body = aes128ctr(false, key, iv, cbody);
+  var body = crypto.aes(false, key, iv, cbody);
   var inner = self.pdecode(body);
   if(!inner) return ret;
 
   // verify+load inner key info
-  var epub = new ecc.ECKey(ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),inner.body]), true);
+  var epub = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),inner.body]), true);
   if(!epub) return ret;
   ret.key = inner.body;
   if(typeof inner.js.from != "object" || !inner.js.from["1a"]) return ret;
@@ -152,7 +132,7 @@ exports.lineize = function(to, packet)
   iv.writeUInt32LE(to.lineIV++,0);
   var ivz = new Buffer(12);
   ivz.fill(0);
-  var cbody = aes128ctr(true, to.encKey, Buffer.concat([ivz,iv]), self.pencode(packet.js,packet.body));
+  var cbody = crypto.aes(true, to.encKey, Buffer.concat([ivz,iv]), self.pencode(packet.js,packet.body));
 
   // prepend the IV and hmac it
   var mac = crypto.createHmac('sha1', to.encKey).update(Buffer.concat([iv,cbody])).digest()
@@ -179,7 +159,7 @@ exports.delineize = function(from, packet)
   var ivz = new Buffer(12);
   ivz.fill(0);
   var body = packet.body.slice(8);
-  var deciphered = self.pdecode(aes128ctr(false,from.decKey,Buffer.concat([ivz,iv]),body));
+  var deciphered = self.pdecode(crypto.aes(false,from.decKey,Buffer.concat([ivz,iv]),body));
 	if(!deciphered) return "invalid decrypted packet";
 
   packet.js = deciphered.js;

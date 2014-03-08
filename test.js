@@ -1,4 +1,5 @@
-var cs1a = require("./index.js");
+//var cs1a = require("./browser.js");
+var cs1a = require("./node.js");
 
 // dummy functions
 cs1a.install({pdecode:function(){console.log("pdecode",arguments);return {}},pencode:function(){console.log("pencode",arguments);return new Buffer(0)}});
