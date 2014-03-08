@@ -1,6 +1,6 @@
 {
   "name": "telehash-cs1a",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "CipherSet 1a for telehash",
   "main": "node.js",
   "dependencies": {
@@ -9,9 +9,7 @@
   "optionalDependencies": {
     "ecc": "git+https://github.com/quartzjer/ecc.git"
   },
-  "browserify":{
-    "main":"./browser.js"
-  },
+  "browserify":"./browser.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/quartzjer/telehash-cs1a.git"
