@@ -4,6 +4,7 @@ var self;
 exports.install = function(telehash)
 {
   self = telehash;
+  telehash.CSets["1a"] = exports;
 }
 
 exports.crypt = function(ecc,aes)
