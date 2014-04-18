@@ -51,7 +51,7 @@ exports.openize = function(id, to, inner)
   var iv = new Buffer("00000000000000000000000000000001","hex");
 
   // encrypt the inner
-  var body = self.pencode(inner,id.cs["1a"].key);
+  var body = (!Buffer.isBuffer(inner)) ? self.pencode(inner,id.cs["1a"].key) : inner;
   var cbody = crypto.aes(true, key, iv, body);
 
   // prepend the line public key and hmac it  
@@ -88,13 +88,20 @@ exports.deopenize = function(id, open)
   var body = crypto.aes(false, key, iv, cbody);
   var inner = self.pdecode(body);
   if(!inner) return ret;
+  ret.inner = inner;
 
   // verify+load inner key info
-  var epub = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),inner.body]), true);
-  if(!epub) return ret;
-  ret.key = inner.body;
-  if(typeof inner.js.from != "object" || !inner.js.from["1a"]) return ret;
-  if(crypto.createHash("sha1").update(inner.body).digest("hex") != inner.js.from["1a"]) return ret;
+  var epub;
+  if(!open.from)
+  {
+    epub = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),inner.body]), true);
+    if(!epub) return ret;
+    ret.key = inner.body;
+    if(typeof inner.js.from != "object" || !inner.js.from["1a"]) return ret;
+    if(crypto.createHash("sha1").update(inner.body).digest("hex") != inner.js.from["1a"]) return ret;    
+  }else{
+    epub = open.from.public;
+  }
 
   // verify the hmac
   var secret = id.cs["1a"].private.deriveSharedSecret(epub);
