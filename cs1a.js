@@ -13,12 +13,20 @@ exports.crypt = function(ecc,aes)
   crypto.aes = aes;
 }
 
+// simple xor buffer folder
+function fold(count, buf)
+{
+  if(!count || buf.length % 2) return buf;
+  var ret = buf.slice(0,buf.length/2);
+  for(i = 0; i < ret.length; i++) ret[i] = ret[i] ^ buf[i+ret.length];
+  return fold(count-1,ret);
+}
+
 exports.genkey = function(ret,cbDone,cbStep)
 {
   var k = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
   ret["1a"] = k.PublicKey.slice(1).toString("base64");
   ret["1a_secret"] = k.PrivateKey.toString("base64");
-  ret.parts["1a"] = crypto.createHash("sha1").update(k.PublicKey.slice(1)).digest("hex");
   cbDone();
 }
 
@@ -47,7 +55,7 @@ exports.openize = function(id, to, inner)
 
   // get the shared secret to create the iv+key for the open aes
   var secret = to.ecc.deriveSharedSecret(to.public);
-  var key = secret.slice(0,16);
+  var key = fold(1,crypto.createHash("sha256").update(secret).digest());
   var iv = new Buffer("00000000000000000000000000000001","hex");
 
   // encrypt the inner
@@ -57,7 +65,7 @@ exports.openize = function(id, to, inner)
   // prepend the line public key and hmac it  
   var secret = id.cs["1a"].private.deriveSharedSecret(to.public);
   var macd = Buffer.concat([eccpub,cbody]);
-  var hmac = crypto.createHmac('sha1', secret).update(macd).digest();
+  var hmac = fold(3,crypto.createHmac("sha256", secret).update(macd).digest());
 
   // create final body
   var body = Buffer.concat([hmac,macd]);
@@ -69,9 +77,9 @@ exports.deopenize = function(id, open)
   var ret = {verify:false};
   if(!open.body) return ret;
 
-  var mac1 = open.body.slice(0,20).toString("hex");
-  var pub = open.body.slice(20,60);
-  var cbody = open.body.slice(60);
+  var mac1 = open.body.slice(0,4).toString("hex");
+  var pub = open.body.slice(4,44);
+  var cbody = open.body.slice(44);
 
   try{
     ret.linepub = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),pub]), true);      
@@ -81,7 +89,7 @@ exports.deopenize = function(id, open)
   if(!ret.linepub) return ret;
 
   var secret = id.cs["1a"].private.deriveSharedSecret(ret.linepub);
-  var key = secret.slice(0,16);
+  var key = fold(1,crypto.createHash("sha256").update(secret).digest());
   var iv = new Buffer("00000000000000000000000000000001","hex");
 
   // aes-128 decipher the inner
@@ -97,15 +105,13 @@ exports.deopenize = function(id, open)
     epub = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, Buffer.concat([new Buffer("04","hex"),inner.body]), true);
     if(!epub) return ret;
     ret.key = inner.body;
-    if(typeof inner.js.from != "object" || !inner.js.from["1a"]) return ret;
-    if(crypto.createHash("sha1").update(inner.body).digest("hex") != inner.js.from["1a"]) return ret;    
   }else{
     epub = open.from.public;
   }
 
   // verify the hmac
   var secret = id.cs["1a"].private.deriveSharedSecret(epub);
-  var mac2 = crypto.createHmac('sha1', secret).update(open.body.slice(20)).digest("hex");
+  var mac2 = fold(3,crypto.createHmac("sha256", secret).update(open.body.slice(4)).digest()).toString("hex");
   if(mac2 != mac1) return ret;
 
   // all good, cache+return
@@ -117,36 +123,36 @@ exports.deopenize = function(id, open)
 // set up the line enc/dec keys
 exports.openline = function(from, open)
 {
-  from.lineIV = 0;
+  from.lineIV = crypto.randomBytes(4).readUInt32LE(0); // start from random place
   from.lineInB = new Buffer(from.lineIn, "hex");
   var ecdhe = from.ecc.deriveSharedSecret(open.linepub);
-  from.encKey = crypto.createHash("sha1")
+  from.encKey = fold(1,crypto.createHash("sha256")
     .update(ecdhe)
     .update(new Buffer(from.lineOut, "hex"))
     .update(from.lineInB)
-    .digest().slice(0,16);
-  from.decKey = crypto.createHash("sha1")
+    .digest());
+  from.decKey = fold(1,crypto.createHash("sha256")
     .update(ecdhe)
     .update(from.lineInB)
     .update(new Buffer(from.lineOut, "hex"))
-    .digest().slice(0,16);
+    .digest());
   return true;
 },
 
 exports.lineize = function(to, packet)
 {
 	// now encrypt the packet
-  var iv = new Buffer(4);
-  iv.writeUInt32LE(to.lineIV++,0);
-  var ivz = new Buffer(12);
-  ivz.fill(0);
-  var cbody = crypto.aes(true, to.encKey, Buffer.concat([ivz,iv]), self.pencode(packet.js,packet.body));
+  var iv = new Buffer(16);
+  iv.fill(0);
+  iv.writeUInt32LE(to.lineIV++,12);
+
+  var cbody = crypto.aes(true, to.encKey, iv, self.pencode(packet.js,packet.body));
 
   // prepend the IV and hmac it
-  var mac = crypto.createHmac('sha1', to.encKey).update(Buffer.concat([iv,cbody])).digest()
+  var mac = fold(3,crypto.createHmac("sha256", to.encKey).update(Buffer.concat([iv.slice(12),cbody])).digest());
 
   // create final body
-  var body = Buffer.concat([to.lineInB,mac.slice(0,4),iv,cbody]);
+  var body = Buffer.concat([to.lineInB,mac,iv.slice(12),cbody]);
 
   return self.pencode(null, body);
 },
@@ -159,7 +165,7 @@ exports.delineize = function(from, packet)
   
   // validate the hmac
   var mac1 = packet.body.slice(0,4).toString("hex");
-  var mac2 = crypto.createHmac('sha1', from.decKey).update(packet.body.slice(4)).digest().slice(0,4).toString("hex");
+  var mac2 = fold(3,crypto.createHmac("sha256", from.decKey).update(packet.body.slice(4)).digest()).toString("hex");
   if(mac1 != mac2) return "invalid hmac";
 
   // decrypt body
