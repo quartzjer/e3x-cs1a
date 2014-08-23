@@ -1,6 +1,15 @@
-//var cs1a = require("./browser.js");
-var cs1a = require("./node.js");
+var expect = require('chai').expect;
+var cs1a = require("../node.js");
 
+describe('cs1a', function(){
+
+  it('should export an object', function(){
+    expect(cs1a).to.be.a('object');
+  });
+
+});
+
+/*
 // dummy functions
 cs1a.install({pdecode:function(){console.log("pdecode",arguments);return {}},pencode:function(){console.log("pencode",arguments);return new Buffer(0)}});
 
@@ -19,3 +28,4 @@ cs1a.genkey(a,function(){
     console.log("opened",open);
   });
 });
+*/
