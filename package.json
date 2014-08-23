@@ -7,7 +7,7 @@
     "ecc-jsbn": "0.0.x"
   },
   "optionalDependencies": {
-    "ecc": "git+https://github.com/quartzjer/ecc.git"
+    "ecc": "git+https://github.com/dazoe/ecc.git"
   },
   "devDependencies": {
     "chai": "*",

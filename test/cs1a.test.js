@@ -7,6 +7,21 @@ describe('cs1a', function(){
     expect(cs1a).to.be.a('object');
   });
 
+  it('should report id', function(){
+    expect(cs1a.id).to.be.equal('1a');
+  });
+
+  it('should generate a keypair', function(done){
+    cs1a.generate(function(err, pair){
+      expect(pair).to.be.a('object');
+      expect(Buffer.isBuffer(pair.key)).to.be.equal(true);
+      expect(pair.key.length).to.be.equal(21);
+      expect(Buffer.isBuffer(pair.secret)).to.be.equal(true);
+      expect(pair.secret.length).to.be.equal(20);
+      done(err);
+    });
+  });
+
 });
 
 /*

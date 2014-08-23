@@ -1,17 +1,47 @@
 var crypto = require("crypto");
 
-var self;
-exports.install = function(telehash)
-{
-  self = telehash;
-  telehash.CSets["1a"] = exports;
-}
+exports.id = '1a';
 
+// env-specific crypto methods
 exports.crypt = function(ecc,aes)
 {
   crypto.ecc = ecc;
   crypto.aes = aes;
 }
+
+exports.generate = function(cb)
+{
+  try {
+    var k = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
+  }catch(E){
+    return cb(E);
+  }
+  cb(null, {key:k.PublicKey, secret:k.PrivateKey});
+}
+
+exports.Local = function(pair)
+{
+  var self = this;
+  self.decrypt = function(){};
+  return self;
+}
+
+exports.Remote = function(key)
+{
+  var self = this;
+  self.verify = function(){};
+  self.encrypt = function(local){};
+  return self;
+}
+
+exports.Ephemeral = function(key, remote)
+{
+  var self = this;
+  self.decrypt = function(){};
+  self.encrypt = function(){};
+  return self;
+}
+
 
 // simple xor buffer folder
 function fold(count, buf)
@@ -24,10 +54,6 @@ function fold(count, buf)
 
 exports.genkey = function(ret,cbDone,cbStep)
 {
-  var k = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
-  ret["1a"] = k.PublicKey.slice(1).toString("base64");
-  ret["1a_secret"] = k.PrivateKey.toString("base64");
-  cbDone();
 }
 
 exports.loadkey = function(id, pub, priv)
