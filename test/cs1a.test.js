@@ -7,6 +7,7 @@ describe('cs1a', function(){
   var pair = {key:new Buffer('03be277f53630a084de2f39c7ff9de56c38bb9d10c','hex'), secret:new Buffer('792fd655c8e03ae16e0e49c3f0265d04689cbea3','hex')};
   var rpair = {key:new Buffer('0365694904381c00dfb7c01bb16b0852ea584a1b0b','hex'), secret:new Buffer('031b502b0743b80c1575f4b459792b5d76ad636d','hex')};
   var mbody = new Buffer('53fa3dbd02099aa5fc8614ef40c8b5ead8070f375e650ae2becb4849fdca4e','hex');
+  var cbody = new Buffer('3e7eaf57db5f407cfde1','hex');
   
   it('should export an object', function(){
     expect(cs1a).to.be.a('object');
@@ -81,6 +82,29 @@ describe('cs1a', function(){
     expect(remote.verify(local,outer)).to.be.equal(true);
   });
 
+  it('should load an ephemeral', function(){
+    var remote = new cs1a.Remote(rpair.key);
+    var ephemeral = new cs1a.Ephemeral(remote, mbody);
+    expect(ephemeral.decrypt).to.be.a('function');
+    expect(ephemeral.encrypt).to.be.a('function');
+  });
+
+  it('ephemeral encrypt', function(){
+    var remote = new cs1a.Remote(rpair.key);
+    var ephemeral = new cs1a.Ephemeral(remote, mbody);
+    var channel = ephemeral.encrypt(new Buffer('0000','hex'));
+    expect(Buffer.isBuffer(channel)).to.be.equal(true);
+    expect(channel.length).to.be.equal(10);
+    console.log("CBODY",channel.toString('hex'));
+  });
+
+  it('ephemeral decrypt', function(){
+    var remote = new cs1a.Remote(rpair.key);
+    var ephemeral = new cs1a.Ephemeral(remote, mbody);
+    var channel = ephemeral.decrypt(cbody);
+    expect(Buffer.isBuffer(channel)).to.be.equal(true);
+    expect(channel.length).to.be.equal(2);
+  });
 
 });
 
