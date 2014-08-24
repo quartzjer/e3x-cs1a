@@ -90,14 +90,15 @@ exports.Remote = function(key)
     // encrypt the inner
     try{
       var innerc = crypto.aes(true, key, iv, inner);
-      var secret = local.secret.deriveSharedSecret(self.key);
+      var macsecret = local.secret.deriveSharedSecret(self.key);
     }catch(E){
       return false;
     }
 
     // prepend the key and hmac it
     var macd = Buffer.concat([self.ephemeral.PublicKey,innerc]);
-    var hmac = fold(3,crypto.createHmac("sha256", secret).update(macd).digest());
+    // key is the secret and seq bytes combined
+    var hmac = fold(3,crypto.createHmac("sha256", Buffer.concat([macsecret,iv.slice(0,4)])).update(macd).digest());
 
     // create final message body
     return Buffer.concat([iv.slice(0,4),macd,hmac]);
