@@ -1,4 +1,4 @@
-var crypto = require("crypto");
+var crypto = require('crypto');
 
 exports.id = '1a';
 
@@ -22,16 +22,87 @@ exports.generate = function(cb)
 exports.Local = function(pair)
 {
   var self = this;
-  self.decrypt = function(){};
-  return self;
+  try{
+    self.key = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, pair.key, true);
+    self.secret = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, pair.secret);
+  }catch(E){}
+
+  // decrypt message body and return the inner
+  self.decrypt = function(body){
+    if(!Buffer.isBuffer(body)) return false;
+    if(body.length < 4+21+4) return false;
+
+    var seq = body.readUInt32BE(0);
+    var keybuf = body.slice(4,4+21);
+    var innerc = body.slice(4+21,body.length-4);
+    var mac1 = body.slice(body.length-4).toString("hex");
+
+    try{
+      var ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, keybuf, true);
+      var secret = self.secret.deriveSharedSecret(ephemeral);
+    }catch(E){
+      return false;
+    }
+
+    var key = fold(1,crypto.createHash("sha256").update(secret).digest());
+    var iv = new Buffer(16);
+    iv.fill(0);
+    iv.writeUInt32BE(seq,0);
+
+    // aes-128 decipher the inner
+    try{
+      var inner = crypto.aes(false, key, iv, innerc);
+    }catch(E){
+      return false;
+    }
+    
+    return inner;
+  };
 }
 
 exports.Remote = function(key)
 {
   var self = this;
-  self.verify = function(){};
-  self.encrypt = function(local){};
-  return self;
+  try{
+    self.key = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, key, true);
+    self.ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
+  }catch(E){}
+
+  self.verify = function(message){
+    
+  };
+
+  self.encrypt = function(local, inner){
+    if(!Buffer.isBuffer(inner)) return false;
+
+    // get the shared secret to create the iv+key for the open aes
+    try{
+      var secret = self.ephemeral.deriveSharedSecret(self.key);
+    }catch(E){
+      return false;
+    }
+    var key = fold(1,crypto.createHash("sha256").update(secret).digest());
+    var seq = Math.floor(Date.now()/1000);
+    var iv = new Buffer(16);
+    iv.fill(0);
+    iv.writeUInt32BE(seq,0);
+
+    // encrypt the inner
+    try{
+      var innerc = crypto.aes(true, key, iv, inner);
+      var secret = local.secret.deriveSharedSecret(self.key);
+    }catch(E){
+      return false;
+    }
+
+    // prepend the key and hmac it
+    var macd = Buffer.concat([self.ephemeral.PublicKey,innerc]);
+    var hmac = fold(3,crypto.createHmac("sha256", secret).update(macd).digest());
+
+    // create final message body
+    return Buffer.concat([iv.slice(0,4),macd,hmac]);
+  };
+
 }
 
 exports.Ephemeral = function(key, remote)
