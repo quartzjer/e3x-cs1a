@@ -13,6 +13,7 @@ describe('cs1a', function(){
 
   it('should generate a keypair', function(done){
     cs1a.generate(function(err, pair){
+      expect(err).to.not.exist;
       expect(pair).to.be.a('object');
       expect(Buffer.isBuffer(pair.key)).to.be.equal(true);
       expect(pair.key.length).to.be.equal(21);

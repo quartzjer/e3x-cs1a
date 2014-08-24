@@ -4,7 +4,7 @@
   "description": "CS1a - e3x cipher set",
   "main": "node.js",
   "dependencies": {
-    "ecc-jsbn": "0.0.x"
+    "ecc-jsbn": "git+https://github.com/quartzjer/ecc-jsbn.git"
   },
   "optionalDependencies": {
     "ecc": "git+https://github.com/dazoe/ecc.git"
