@@ -35,7 +35,7 @@ exports.Local = function(pair)
     var seq = body.readUInt32BE(0);
     var keybuf = body.slice(4,4+21);
     var innerc = body.slice(4+21,body.length-4);
-    var mac1 = body.slice(body.length-4).toString("hex");
+    // mac is handled during verify stage
 
     try{
       var ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, keybuf, true);
@@ -68,8 +68,18 @@ exports.Remote = function(key)
     self.ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
   }catch(E){}
 
-  self.verify = function(message){
+  // verifies the hmac on an incoming message body
+  self.verify = function(local, body){
+    if(!Buffer.isBuffer(body)) return false;
+
+    // derive shared secret from both identity keys
+    var secret = local.secret.deriveSharedSecret(self.key);
+
+    // hmac key is the secret and seq bytes combined
+    var mac = fold(3,crypto.createHmac("sha256", Buffer.concat([secret,body.slice(0,4)])).update(body.slice(4,body.length-4)).digest());
+    if(mac.toString('hex') != body.slice(body.length-4).toString('hex')) return false;
     
+    return true;
   };
 
   self.encrypt = function(local, inner){

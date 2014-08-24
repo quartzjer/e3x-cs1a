@@ -6,6 +6,7 @@ describe('cs1a', function(){
   // fixtures
   var pair = {key:new Buffer('03be277f53630a084de2f39c7ff9de56c38bb9d10c','hex'), secret:new Buffer('792fd655c8e03ae16e0e49c3f0265d04689cbea3','hex')};
   var rpair = {key:new Buffer('0365694904381c00dfb7c01bb16b0852ea584a1b0b','hex'), secret:new Buffer('031b502b0743b80c1575f4b459792b5d76ad636d','hex')};
+  var mbody = new Buffer('53fa3dbd02099aa5fc8614ef40c8b5ead8070f375e650ae2becb4849fdca4e','hex');
   
   it('should export an object', function(){
     expect(cs1a).to.be.a('object');
@@ -37,7 +38,6 @@ describe('cs1a', function(){
   it('should local decrypt', function(){
     var local = new cs1a.Local(pair);
     // created from remote encrypt
-    var mbody = new Buffer('53fa0379020edfda41fdb4149576346c09e55d850e26c0990175453a886de7','hex');
     var inner = local.decrypt(mbody);
     expect(Buffer.isBuffer(inner)).to.be.equal(true);
     expect(inner.length).to.be.equal(2);
@@ -59,7 +59,14 @@ describe('cs1a', function(){
 //    console.log("MBODY",message.toString('hex'));
   });
 
-  it('should dynamically encrypt and decrypt', function(){
+  it('should remote verify', function(){
+    var local = new cs1a.Local(rpair);
+    var remote = new cs1a.Remote(pair.key);
+    var bool = remote.verify(local, mbody);
+    expect(bool).to.be.equal(true);
+  });
+
+  it('should dynamically encrypt, decrypt, and verify', function(){
     var local = new cs1a.Local(pair);
     var remote = new cs1a.Remote(rpair.key);
     var inner = new Buffer('4242','hex');
@@ -69,6 +76,9 @@ describe('cs1a', function(){
     var local = new cs1a.Local(rpair);
     var remote = new cs1a.Remote(pair.key);
     expect(local.decrypt(outer).toString('hex')).to.be.equal(inner.toString('hex'));
+    
+    // verify sender
+    expect(remote.verify(local,outer)).to.be.equal(true);
   });
 
 
