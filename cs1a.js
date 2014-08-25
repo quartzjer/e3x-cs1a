@@ -155,7 +155,7 @@ exports.Ephemeral = function(remote, body)
     var ivz = new Buffer(12);
     ivz.fill(0);
     try{
-      var body = crypto.aes(false,from.decKey,Buffer.concat([iv,ivz]),cbody);
+      var body = crypto.aes(false,self.decKey,Buffer.concat([seq,ivz]),cbody);
     }catch(E){
       return false;
     }
