@@ -25,7 +25,11 @@ exports.Local = function(pair)
   try{
     self.key = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, pair.key, true);
     self.secret = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, pair.secret);
-  }catch(E){}
+    if(self.key.PublicKey.toString() != pair.key.toString()) throw new Error('invalid public key data');
+    if(self.secret.PrivateKey.toString() != pair.secret.toString()) throw new Error('invalid secret key data');
+  }catch(E){
+    self.err = E;
+  }
 
   // decrypt message body and return the inner
   self.decrypt = function(body){
@@ -66,7 +70,9 @@ exports.Remote = function(key)
   try{
     self.endpoint = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, key, true);
     self.ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
-  }catch(E){}
+  }catch(E){
+    self.err = E;
+  }
 
   // verifies the hmac on an incoming message body
   self.verify = function(local, body){
@@ -138,7 +144,9 @@ exports.Ephemeral = function(remote, body)
       .update(key.PublicKey)
       .update(remote.ephemeral.PublicKey)
       .digest());
-  }catch(E){}
+  }catch(E){
+    self.err = E;
+  }
 
   self.decrypt = function(outer){
     // extract the three buffers

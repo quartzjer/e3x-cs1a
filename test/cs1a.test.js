@@ -34,7 +34,18 @@ describe('cs1a', function(){
   it('should load a pair', function(){
     var local = new cs1a.Local(pairA);
     expect(local).to.be.a('object');
+    expect(local.err).to.not.exist;
     expect(local.decrypt).to.be.a('function');
+  });
+
+  it('should fail loading nothing', function(){
+    var local = new cs1a.Local();
+    expect(local.err).to.exist;
+  });
+
+  it('should fail with bad data', function(){
+    var local = new cs1a.Local({key:new Buffer(21),secret:new Buffer(20)});
+    expect(local.err).to.exist;
   });
 
   it('should local decrypt', function(){
