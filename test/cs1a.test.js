@@ -61,6 +61,7 @@ describe('cs1a', function(){
     var remote = new cs1a.Remote(pairB.key);
     expect(remote.verify).to.be.a('function');
     expect(remote.encrypt).to.be.a('function');
+    expect(remote.token.length).to.be.equal(16);
   });
 
   it('should local encrypt', function(){

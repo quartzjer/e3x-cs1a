@@ -70,6 +70,7 @@ exports.Remote = function(key)
   try{
     self.endpoint = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, key, true);
     self.ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
+    self.token = crypto.createHash('sha256').update(self.ephemeral.PublicKey.slice(0,16)).digest().slice(0,16);
   }catch(E){
     self.err = E;
   }
