@@ -89,8 +89,9 @@ exports.Remote = function(key)
     return true;
   };
 
-  self.encrypt = function(local, inner){
+  self.encrypt = function(local, inner, seq){
     if(!Buffer.isBuffer(inner)) return false;
+    if(!seq) return false;
 
     // get the shared secret to create the iv+key for the open aes
     try{
@@ -99,7 +100,6 @@ exports.Remote = function(key)
       return false;
     }
     var key = fold(1,crypto.createHash("sha256").update(secret).digest());
-    var seq = Math.floor(Date.now()/1000);
     var iv = new Buffer(16);
     iv.fill(0);
     iv.writeUInt32BE(seq,0);

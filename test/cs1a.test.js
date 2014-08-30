@@ -67,7 +67,7 @@ describe('cs1a', function(){
   it('should local encrypt', function(){
     var local = new cs1a.Local(pairA);
     var remote = new cs1a.Remote(pairB.key);
-    var message = remote.encrypt(local, new Buffer('0000','hex'));
+    var message = remote.encrypt(local, new Buffer('0000','hex'),1);
     expect(Buffer.isBuffer(message)).to.be.equal(true);
     expect(message.length).to.be.equal(31);
 //    console.log("mbodyAB",message.toString('hex'));
@@ -76,7 +76,7 @@ describe('cs1a', function(){
   it('should remote encrypt', function(){
     var local = new cs1a.Local(pairB);
     var remote = new cs1a.Remote(pairA.key);
-    var message = remote.encrypt(local, new Buffer('0000','hex'));
+    var message = remote.encrypt(local, new Buffer('0000','hex'),1);
     expect(Buffer.isBuffer(message)).to.be.equal(true);
     expect(message.length).to.be.equal(31);
 //    console.log("mbodyBA",message.toString('hex'));
@@ -93,7 +93,7 @@ describe('cs1a', function(){
     var local = new cs1a.Local(pairA);
     var remote = new cs1a.Remote(pairB.key);
     var inner = new Buffer('4242','hex');
-    var outer = remote.encrypt(local, inner);
+    var outer = remote.encrypt(local, inner,1);
 
     // now invert them to decrypt
     var local = new cs1a.Local(pairB);
@@ -123,13 +123,13 @@ describe('cs1a', function(){
     // handshake one direction
     var localA = new cs1a.Local(pairA);
     var remoteB = new cs1a.Remote(pairB.key);
-    var messageBA = remoteB.encrypt(localA, new Buffer('0000','hex'));
+    var messageBA = remoteB.encrypt(localA, new Buffer('0000','hex'),1);
 
     // receive it and make ephemeral and reply
     var localB = new cs1a.Local(pairB);
     var remoteA = new cs1a.Remote(pairA.key);
     var ephemeralBA = new cs1a.Ephemeral(remoteA, messageBA);
-    var messageAB = remoteA.encrypt(localB, new Buffer('0000','hex'));
+    var messageAB = remoteA.encrypt(localB, new Buffer('0000','hex'),1);
 
     // make other ephemeral and encrypt
     var ephemeralAB = new cs1a.Ephemeral(remoteB, messageAB);
