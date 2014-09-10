@@ -5,10 +5,10 @@ describe('cs1a', function(){
 
   // fixtures
   var pairA = {key:new Buffer('03be277f53630a084de2f39c7ff9de56c38bb9d10c','hex'), secret:new Buffer('792fd655c8e03ae16e0e49c3f0265d04689cbea3','hex')};
-  var mbodyAB = new Buffer('53fa84250388897484185826776aa60855a6baaa59265dae708ac46cebf351','hex');
+  var mbodyAB = new Buffer('030d8def4405c1380afeca3760322be710a3f53cfe7c9bed207249f31af977','hex');
 
   var pairB = {key:new Buffer('0365694904381c00dfb7c01bb16b0852ea584a1b0b','hex'), secret:new Buffer('031b502b0743b80c1575f4b459792b5d76ad636d','hex')};
-  var mbodyBA = new Buffer('53fa8425026a9607938453a0860451beb0dc034cdb1706cbb08256b6205c84','hex');
+  var mbodyBA = new Buffer('021aaad76e86b2c951a0ab00b22d031567b6bd556aa953a22b65f5d62dcbba','hex');
   
   it('should export an object', function(){
     expect(cs1a).to.be.a('object');
