@@ -1,6 +1,6 @@
 {
   "name": "e3x-cs1a",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "CS1a - e3x cipher set",
   "main": "node.js",
   "dependencies": {
