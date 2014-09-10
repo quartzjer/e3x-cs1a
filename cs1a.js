@@ -36,7 +36,6 @@ exports.Local = function(pair)
     if(!Buffer.isBuffer(body)) return false;
     if(body.length < 4+21+4) return false;
 
-    var seq = body.readUInt32BE(0);
     var keybuf = body.slice(4,4+21);
     var innerc = body.slice(4+21,body.length-4);
     // mac is handled during verify stage
@@ -49,9 +48,9 @@ exports.Local = function(pair)
     }
 
     var key = fold(1,crypto.createHash("sha256").update(secret).digest());
-    var iv = new Buffer(16);
-    iv.fill(0);
-    iv.writeUInt32BE(seq,0);
+    var zero = new Buffer(12);
+    zero.fill(0);
+    var iv = Buffer.concat([body.slice(0,4),zero]);
 
     // aes-128 decipher the inner
     try{
@@ -71,6 +70,7 @@ exports.Remote = function(key)
     self.endpoint = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, key, true);
     self.ephemeral = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1);
     self.token = crypto.createHash('sha256').update(self.ephemeral.PublicKey.slice(0,16)).digest().slice(0,16);
+    self.seq = crypto.randomBytes(4).readUInt32LE(0); // start from random place
   }catch(E){
     self.err = E;
   }
@@ -89,9 +89,8 @@ exports.Remote = function(key)
     return true;
   };
 
-  self.encrypt = function(local, inner, seq){
+  self.encrypt = function(local, inner){
     if(!Buffer.isBuffer(inner)) return false;
-    if(!seq) return false;
 
     // get the shared secret to create the iv+key for the open aes
     try{
@@ -102,7 +101,7 @@ exports.Remote = function(key)
     var key = fold(1,crypto.createHash("sha256").update(secret).digest());
     var iv = new Buffer(16);
     iv.fill(0);
-    iv.writeUInt32BE(seq,0);
+    iv.writeUInt32LE(self.seq++,0);
 
     // encrypt the inner
     try{

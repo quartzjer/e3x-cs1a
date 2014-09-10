@@ -67,7 +67,7 @@ describe('cs1a', function(){
   it('should local encrypt', function(){
     var local = new cs1a.Local(pairA);
     var remote = new cs1a.Remote(pairB.key);
-    var message = remote.encrypt(local, new Buffer('0000','hex'),1);
+    var message = remote.encrypt(local, new Buffer('0000','hex'));
     expect(Buffer.isBuffer(message)).to.be.equal(true);
     expect(message.length).to.be.equal(31);
 //    console.log("mbodyAB",message.toString('hex'));
@@ -76,7 +76,7 @@ describe('cs1a', function(){
   it('should remote encrypt', function(){
     var local = new cs1a.Local(pairB);
     var remote = new cs1a.Remote(pairA.key);
-    var message = remote.encrypt(local, new Buffer('0000','hex'),1);
+    var message = remote.encrypt(local, new Buffer('0000','hex'));
     expect(Buffer.isBuffer(message)).to.be.equal(true);
     expect(message.length).to.be.equal(31);
 //    console.log("mbodyBA",message.toString('hex'));
@@ -93,7 +93,7 @@ describe('cs1a', function(){
     var local = new cs1a.Local(pairA);
     var remote = new cs1a.Remote(pairB.key);
     var inner = new Buffer('4242','hex');
-    var outer = remote.encrypt(local, inner,1);
+    var outer = remote.encrypt(local, inner);
 
     // now invert them to decrypt
     var local = new cs1a.Local(pairB);
