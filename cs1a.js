@@ -131,6 +131,9 @@ exports.Ephemeral = function(remote, body)
   self.seq = crypto.randomBytes(4).readUInt32LE(0); // start from random place
 
   try{
+    // sender token
+    self.token = crypto.createHash('sha256').update(body.slice(0,16)).digest().slice(0,16);
+
     // extract received ephemeral key
     var key = new crypto.ecc.ECKey(crypto.ecc.ECCurves.secp160r1, body.slice(0,21), true);
 
