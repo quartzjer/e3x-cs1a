@@ -44,7 +44,7 @@ describe('cs1a', function(){
   });
 
   it('should fail with bad data', function(){
-    var local = new cs1a.Local({key:new Buffer(21),secret:new Buffer(20)});
+    var local = new cs1a.Local({key:new Buffer(Array(21)),secret:new Buffer(Array(20))});
     expect(local.err).to.exist;
   });
 
