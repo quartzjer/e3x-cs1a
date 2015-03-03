@@ -7,6 +7,8 @@ exports = module.exports = require('./cs1a.js');
 try {
   if(process.env.PURE == 'true') throw new Error("pure requested");
   var ecc = require("ecc");
+  // this validates that the compiled ecc can actually generate this curve
+  new ecc.ECKey(ecc.ECCurves.secp160r1);
 }catch(E){
   var ecc = require("ecc-jsbn");  
 }
